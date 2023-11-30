@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StarRating from './StarRating';
 
 
@@ -20,6 +20,25 @@ export default function App() {
 
     return JSON.parse(stored);
   });
+
+  function handleSelectMovie(id) {
+    setSelectedID((selectedID) => id === selectedID ? null : id);
+  }
+
+  function handleCloseMovie() {
+    setSelectedID(null);
+  }
+
+  function handleAddWatched(movie) {
+    setWatched(watched => [...watched, movie]);
+
+    // localStorage.setItem('watched', JSON.stringify([...watched, movie]));
+  }
+
+  function handleDeleteMovie(id) {
+    setWatched(watched => watched.filter(movie => movie.imdbID !== id));
+  }
+
 
   useEffect(function () {
     const controller = new AbortController();
@@ -68,23 +87,6 @@ export default function App() {
 
   }, [watched]);
 
-  function handleSelectMovie(id) {
-    setSelectedID((selectedID) => id === selectedID ? null : id);
-  }
-
-  function handleCloseMovie() {
-    setSelectedID(null);
-  }
-
-  function handleAddWatched(movie) {
-    setWatched(watched => [...watched, movie]);
-
-    // localStorage.setItem('watched', JSON.stringify([...watched, movie]));
-  }
-
-  function handleDeleteMovie(id) {
-    setWatched(watched => watched.filter(movie => movie.imdbID !== id));
-  }
 
   return (
     <>
@@ -112,7 +114,7 @@ export default function App() {
               watched={watched}
             /> :
             <>
-              <WatchedSummary watched={watched} />
+              {<WatchedSummary watched={watched} />}
               <WatchedMovieList watched={watched} onDeleteMovie={handleDeleteMovie} />
             </>
           }
@@ -153,14 +155,35 @@ function Logo() {
 }
 
 function Search({ query, setQuery }) {
+  const inputEl = useRef(null);
 
-  return <input
-    className="search"
-    type="text"
-    placeholder="Search movies..."
-    value={query}
-    onChange={(e) => setQuery(e.target.value)}
-  />;
+  // new Effect runs on mount
+  useEffect(function () {
+
+    function callback(e) {
+      if (document.activeElement === inputEl.current) return;
+
+      if (e.code === "Enter") {
+        inputEl.current.focus();
+        setQuery("");
+      }
+    }
+
+    document.addEventListener('keydown', callback);
+
+    return () => document.addEventListener('keydown', callback);
+  }, [setQuery]);
+
+
+  return (
+    <input
+      className="search"
+      type="text"
+      placeholder="Search movies..."
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      ref={inputEl}
+    />);
 }
 
 function NumResults({ movies }) {
@@ -249,14 +272,12 @@ function Movie({ movie, onSelectMovie }) {
 
 function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
 
-
-
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState('');
 
-  const isWatched = watched.map(movie => movie.imdbID).includes(selectedID);
-  const watchedUserRating = watched.find(moive => movie.imdbID === selectedID)?.userRating;
+  const isWatched = watched.map((movie) => movie.imdbID).includes(selectedID);
+  const watchedUserRating = watched.find((movie) => movie.imdbID === selectedID)?.userRating;
   // destruct data out of movie
   const {
     Title: title,
@@ -302,7 +323,7 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
       if (e.code === "Escape") {
         onCloseMovie();
       }
-    };
+    }
     document.addEventListener('keydown', callback);
 
     return function () {
@@ -344,8 +365,8 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
               {!isWatched ? <>
                 <StarRating maxRating={10} size={24} onSetRating={setUserRating} />
 
-                {userRating > 0 &&
-                  <button className="btn-add" onClick={handleAdd}>+Add movie to list</button>
+                {userRating > 0 && (
+                  <button className="btn-add" onClick={handleAdd}>+Add movie to list</button>)
                 }
               </>
                 :
@@ -368,9 +389,9 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
 
 function WatchedSummary({ watched }) {
 
-  const avgImdbRating = Math.round(average(watched.map((movie) => movie.imdbRating)));
-  const avgUserRating = Math.round(average(watched.map((movie) => movie.userRating)));
-  const avgRuntime = Math.round(average(watched.map((movie) => movie.runtime)));
+  const avgImdbRating = average(watched.map((movie) => movie.imdbRating)).toFixed(1);
+  const avgUserRating = average(watched.map((movie) => movie.userRating)).toFixed(1);
+  const avgRuntime = average(watched.map((movie) => movie.runtime)).toFixed(1);
 
   return (
     <div className="summary">

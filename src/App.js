@@ -275,6 +275,7 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
   const [movie, setMovie] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [userRating, setUserRating] = useState('');
+  const countRef = useRef(0);
 
   const isWatched = watched.map((movie) => movie.imdbID).includes(selectedID);
   const watchedUserRating = watched.find((movie) => movie.imdbID === selectedID)?.userRating;
@@ -292,6 +293,22 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
     Director: director,
     Genre: genre
   } = movie;
+
+  function handleAdd() {
+    const newWatchedMovie = {
+      imdbID: selectedID,
+      title,
+      year,
+      poster,
+      imdbRating: Number(imdbRating),
+      runtime: Number(runtime.split(" ").at(0)),
+      userRating,
+      countRatingDecisions: countRef.current
+    };
+
+    onAddWatched(newWatchedMovie);
+    onCloseMovie();
+  }
 
   // every time the component renders thats why the empty dependency array
   useEffect(function () {
@@ -331,20 +348,12 @@ function MovieDetails({ selectedID, onCloseMovie, onAddWatched, watched }) {
     };
   }, [onCloseMovie]);
 
-  function handleAdd() {
-    const newWatchedMovie = {
-      imdbID: selectedID,
-      title,
-      year,
-      poster,
-      imdbRating: Number(imdbRating),
-      runtime: Number(runtime.split(" ").at(0)),
-      userRating
-    };
-
-    onAddWatched(newWatchedMovie);
-    onCloseMovie();
-  }
+  // because we are not allowed to mutate the Ref in render logic
+  useEffect(function () {
+    if (userRating) {
+      countRef.current++;
+    }
+  }, [userRating]);
   return (
     <div className="details">
       {isLoading ? <Loader /> :
